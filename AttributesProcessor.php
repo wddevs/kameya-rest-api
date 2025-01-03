@@ -65,7 +65,7 @@ class AttributesProcessor
 					wp_set_object_terms( $product->get_id(), $options, $taxonomy );
 				}
 
-				if( ! empty( $options ) ) {
+				if( ! empty( $options ) || $attr_slug == 'rozmir'  ) {
 					// Add attribute to array, but don't set values.
 					$attribute_object = new WC_Product_Attribute();
 					$attribute_object->set_id( $attribute_id );
@@ -126,8 +126,6 @@ class AttributesProcessor
 		$sizes = [];
 
 		$type = $product->get_type();
-
-		
 
 		if( ! empty( $variations ) ) {
 			foreach( $variations as $key => $variation ) {

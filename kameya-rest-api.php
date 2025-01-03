@@ -18,6 +18,8 @@
  * WC tested up to: 3.9
  */
 
+// https://test.kameya.com.ua/wp-json/wc/v3/products/batch
+
 // https://stackoverflow.com/questions/42020630/wordpress-saving-translation-post-when-creating-new-post
 // POST  https://kameya-api/wp-json/wc/v3/products/?lang=uk
 // - варіації атрибути
@@ -28,15 +30,29 @@
 // - оновлення
 // - [+] витягнути всі атрибути з варіацій
 
+
+// new
+// створювати окремо варіації(штрихкоди) (parent_)
+// оновлювати окремо варіації(штрихкоди)
+// згенерувати розміри на основі додати дочірніх постів
+
+// синхронізувати атрибути товарів автоматично, базуючись на мета полі з розмірами варіацій. Тобто дозаповнюєм при створенні варіації, потім в момент події sync регенеруємо атрибути. Робимо на основі метода sync_price класу WC_Product_Variable_Data_Store_CPT
+//
+
 require_once __DIR__ . '/AttributesProcessor.php';
 require_once __DIR__ . '/DuplicateProduct.php';
+require_once __DIR__ . '/RegisterBatchSkuRoutes.php';
+require_once __DIR__ . '/RegisterBatchProductRoutes.php';
+require_once __DIR__ . '/RegisterCheckSkuRoute.php';
+require_once __DIR__ . '/VariationsBatchHandler.php';
 
 class KameyaRestApi
+
 {
 	protected static $instance = null;
 
-	private $attrsProcessor;
-	private $duplicator;
+	public $attrsProcessor;
+	public $duplicator;
 
 	public static function instance() 
 	{
@@ -101,7 +117,9 @@ class KameyaRestApi
 		$variations  = $request->get_param('variations_raw');
 		$categoriesId = $this->getCategoriesIdsFromString( $request->get_param('categories_raw') );
 		$attributes   = $this->getAttrsFromString( $request->get_param('attributes_raw'), $product, $request->get_param('variations_raw') );
-		$sku   = $this->formatSku( $request->get_param('sku') );
+		$sku   = self::formatSku( $request->get_param('sku') );
+
+		// die( var_dump( $sku ) );
 
 		if( ! empty( $categoriesId ) ) {
 			$product->set_category_ids( $categoriesId );
@@ -114,7 +132,7 @@ class KameyaRestApi
 		if( $attributes ) {
 			$product->set_attributes( $attributes );
 		}
-
+ 
 		return $product;
 	}
 
@@ -126,8 +144,10 @@ class KameyaRestApi
 			$this->handleVariations($variations, $product);
 		}		
 
+		die( var_dump($creating, $request) );
+
 		$duplicatedProduct = $this->duplicator->duplicate( $product->get_id(), $request );	
-		$this->duplicator->setTranslationsGroup($product->get_id(), $request->get_param('sku'), 'uk');
+		$this->duplicator->setTranslationsGroup($product->get_id(), self::formatSku( $request->get_param('sku') ), 'uk');
 
 		$this->duplicator->syncVariations($product, $duplicatedProduct, $request);
 	}
@@ -255,11 +275,43 @@ class KameyaRestApi
 		$product->sync( $variation );
 	}
 
-	private function formatSku( $value )
+	public static function formatSku( $value )
 	{
 		if( ! empty( $value ) ) {
-			return sanitize_title($sku);
+			if( ! preg_match( '/^\d+$/', $value ) ) {
+				$sku = preg_replace("/^[\w]+$/", '', $value);
+			    $sku = self::transliterate( urldecode( $sku ) );
+
+			    $sku = str_replace('/', '', $sku);
+			    $sku = str_replace(' ', '', $sku);
+			    $sku = str_replace('*', '', $sku);
+			    $sku = str_replace(',', '.', $sku);
+			    $sku = str_replace('(', '', $sku);
+			    $sku = str_replace(')', '', $sku);
+			    $sku = str_replace('_', '', $sku);
+			    $sku = str_replace('..', '.', $sku);
+
+			    // $sku = str_replace('(1)', '-model', $sku);			    		    
+			    
+			    return $sku;
+			} else {
+				return $sku;
+			}
+			
+			// return sanitize_title($sku);
 		}
+	}
+
+	public static function transliterate($textcyr = null, $textlat = null) {
+	    $cyr = array(
+	    'ї', 'і', 'ж',  'ч',  'щ',   'ш',  'ю',  'а', 'б', 'в', 'г', 'д', 'е', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ъ', 'ь', 'я',
+	    'Ї', 'І', 'Ж',  'Ч',  'Щ',   'Ш',  'Ю',  'А', 'Б', 'В', 'Г', 'Д', 'Е', 'З', 'И', 'Й', 'К', 'Л', 'М', 'Н', 'О', 'П', 'Р', 'С', 'Т', 'У', 'Ф', 'Х', 'Ц', 'Ъ', 'Ь', 'Я');
+	    $lat = array(
+	    'yi', 'i', 'zh', 'ch', 'sht', 'sh', 'yu', 'a', 'b', 'v', 'g', 'd', 'e', 'z', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'r', 's', 't', 'u', 'f', 'h', 'c', 'y', 'x', 'q',
+	    'Yi', 'I', 'Zh', 'Ch', 'Sht', 'Sh', 'Yu', 'A', 'B', 'V', 'G', 'D', 'E', 'Z', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T', 'U', 'F', 'H', 'c', 'Y', 'X', 'Q');
+	    if($textcyr) return str_replace($cyr, $lat, $textcyr);
+	    else if($textlat) return str_replace($lat, $cyr, $textlat);
+	    else return null;
 	}
 }
 

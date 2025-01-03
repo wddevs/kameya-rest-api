@@ -12,7 +12,7 @@ class DuplicateProduct
 		$product = wc_get_product( $product_id );
 
 		$name = $request->get_param('name_ru');
-		$sku = $request->get_param('sku') . '_ru';
+		$sku = KameyaRestApi::formatSku( $request->get_param('sku') ) . '_ru';
 
 		if( $product ) {
 			$duplicate = clone $product;
@@ -64,8 +64,6 @@ class DuplicateProduct
 
 				$new_sku = $child->get_sku() . '_ru';
 
-				var_dump( wc_get_product_id_by_sku( $new_sku ) );
-
 				if( wc_get_product_id_by_sku( $new_sku ) == 0 ) {
 
 					$name = $duplicate->get_name() . ' - ' . $child->get_attribute('pa_rozmir');
@@ -90,6 +88,13 @@ class DuplicateProduct
 
 			return true;
 		}
+	}
+
+	public function syncVariation( $product, $duplicate, $request, $creating = false )
+	{
+		if( $creating === false ) {
+
+		}		
 	}
 
 	public function syncTerms($product_id, $duplicateId)
