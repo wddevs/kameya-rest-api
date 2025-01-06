@@ -110,6 +110,8 @@ class WC_REST_Batch_Sku_Controller extends WC_REST_Products_V1_Controller {
 
 		if( ! empty( $request['size'] ) ) {
 			$variation->set_attributes( ['pa_rozmir'=> str_replace('.', '-', $request['size']) ] );
+		} else {
+			$variation->set_attributes( ['pa_rozmir'=> str_replace('.', '-', '777') ] );
 		}
 
 		if ( isset( $request['weight'] ) ) {

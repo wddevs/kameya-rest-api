@@ -68,16 +68,53 @@ class WC_REST_Batch_Product_Sku_Controller extends WC_REST_Products_V1_Controlle
     	// Type is the most important part here because we need to be using the correct class and methods.
 		$product = wc_get_product( $id );
 
-		if( $product && $product->get_type() == 'variable' ) {
-			die( var_dump( $product, KameyaRestApi::instance()->duplicator ) );
-		}
+    	$categoriesId = KameyaRestApi::instance()->getCategoriesIdsFromString( $request->get_param('categories_raw') );
+    	$attributes   = KameyaRestApi::instance()->getAttrsFromString( $request->get_param('attributes_raw'), $product, $request->get_param('variations_raw') );   	
 
-		
+		if( $product && $product->get_type() == 'variable' ) {
+
+			$name = $request->get_param('name');
+			
+			$product->set_slug( $product->get_title() );
+			$product->set_name( $name );
+
+			if( ! empty( $categoriesId ) ) {
+				$product->set_category_ids( $categoriesId );
+			}
+
+			if( $attributes ) {
+				$product->set_attributes( $attributes );
+			}
+
+			$this->updateSimilarProduct( $product, $request );
+		}
 
 		return apply_filters( "woocommerce_rest_pre_insert_{$this->post_type}", $product, $request );
     }
 
+    private function updateSimilarProduct( $product, $request )
+    {
+    	$duplicator = KameyaRestApi::instance()->duplicator;
 
+    	$sku = KameyaRestApi::formatSku( $request->get_param('sku') ) . '_ru';
+    	$name = $request->get_param('name_ru');
+
+    	$duplicateId = wc_get_product_id_by_sku( $sku );
+
+    	if( $duplicateId > 0 ) {
+    		$duplicatedProduct = wc_get_product( $duplicateId );
+    		$duplicatedProduct->set_name( $name );
+    		$duplicatedProduct->set_slug( $name );
+    		$duplicatedProduct->set_attributes( $product->get_attributes() );
+
+    		$duplicator->syncTerms( $product->get_id(), $duplicateId );
+    		// var_dump( $duplicatedProduct );
+
+    		// var_dump( $duplicateId, $duplicatedProduct->get_id() );
+
+    		$duplicatedProduct->save();
+    	}
+    }
 }
 
 

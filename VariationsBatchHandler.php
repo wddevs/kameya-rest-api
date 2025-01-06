@@ -141,12 +141,18 @@ class VariationsBatchHandler
 
 		$parent_id = wc_get_product_id_by_sku( KameyaRestApi::formatSku( $request['parent_sku'] ) . $lang );		
 
+
+
 		if( $parent_id > 0 ) {
 			$product = wc_get_product( $parent_id );
 
 			$attributes = $product->get_attributes();			
 
-			$size = $request['size'] . $lang;
+			if( ! empty( $request['size'] ) ) {
+				$size = $request['size'] . $lang;
+			} else {
+				$size = '777' . $lang;
+			}			
 
 			$attribute_term = get_term_by('slug', str_replace(['.', '_'], '-', $size ), 'pa_rozmir');
 
@@ -223,28 +229,81 @@ class VariationsBatchHandler
 
 			// Regular Price.
 			if ( isset( $request['price'] ) ) {
+				$variation->set_regular_price( $request['price'] );
 				$variation_ru->set_regular_price( $request['price'] );
 			}
 
 			// Sale Price.
 			if ( isset( $request['sale_price'] ) ) {
 				$variation_ru->set_sale_price( $request['sale_price'] );
+				$variation->set_sale_price( $request['sale_price'] );
 			}
 
 			if ( isset( $request['published'] ) && $request['published'] == '1' ) {
 				$variation_ru->set_stock_status( $request['published'] == '1' ? 'instock' : 'outofstock' );
+				$variation->set_stock_status( $request['published'] == '1' ? 'instock' : 'outofstock' );
 
 				$variation_ru->set_manage_stock( 'yes' );
+				$variation->set_manage_stock( 'yes' );
 
 				$variation_ru->set_stock_quantity( 1 );
+				$variation->set_stock_quantity( 1 );
+
 				$variation_ru->set_status('publish');
+				$variation->set_status('publish');
+
 			} else if( isset( $request['published'] ) && $request['published'] == '0'  ) {
 				$variation_ru->set_stock_quantity( '' );
+				$variation->set_stock_quantity( '' );
+
 				$variation_ru->set_status('private');
+				$variation->set_status('private');
 			}
 
 			$variation_ru->save();
+			$variation->save();
+
+			$this->syncParentSizes( $variation );
 		}
+	}
+
+	public function syncParentSizes( $variation )
+	{
+		$duplicator = KameyaRestApi::instance()->duplicator;
+
+		$parentId = $variation->get_parent_id();
+
+		$parentProduct = wc_get_product( $variation->get_parent_id() );
+
+		$duplicateId = wc_get_product_id_by_sku( $parentProduct->get_sku() . '_ru' );
+
+		$availableVariations = $parentProduct->get_available_variations();
+
+		$attributes = $parentProduct->get_attributes();	
+
+		$currentSizes = $attributes['pa_rozmir']->get_options();	
+
+		$availableSizes = [];
+
+		foreach( $availableVariations as $variation ) {
+			$availableSizes[] = $variation['attributes']['attribute_pa_rozmir'];
+		}
+
+		$availableSizes = array_unique( $availableSizes );
+
+		sort( $availableSizes );
+
+		$actualTerms = [];
+
+		foreach( $availableSizes as $size ) {
+			$actualTerms[] = get_term_by('slug', str_replace(['.', '_'], '-', $size ), 'pa_rozmir')->name;
+		}
+
+		wp_set_object_terms( $parentId, $actualTerms, 'pa_rozmir' );
+
+		if( $duplicateId ) {
+			$duplicator->syncTerms( $parentId, $duplicateId );
+		}		
 	}
 
 	/**

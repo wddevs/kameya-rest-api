@@ -2,26 +2,26 @@
 
 class AttributesProcessor
 {
-	private array $globalAttributes;
+	public array $globalAttributes = [
+		'Розмір',
+		'Метал',
+		'Проба',
+		'Колір вставки',
+		'Вставка',
+		'Колір металу',
+		'Для кого',
+		// 'Тип обручки',
+		// 'Вид застібки',
+		'Плетіння',
+		'Застібки',
+		'Колекція',
+		'Є комплект',
+		'Під замовлення / В наявності',
+	];
 
 	public function __construct()
 	{
-		$this->global_attributes = [
-			'Розмір',
-			'Метал',
-			'Проба',
-			'Колір вставки',
-			'Вставка',
-			'Колір металу',
-			'Для кого',
-			'Тип обручки',
-			'Вид застібки',
-			'Плетіння',
-			'Застібки',
-			'Колекція',
-			'Є комплект',
-			'Під замовлення / В наявності',
-		];
+		
 	}
 
 	public function handle($value, $product, $variations = [])
@@ -41,7 +41,10 @@ class AttributesProcessor
 		$attributes = [];
 
 		foreach( $options as $key => $option ) {
-			$attr_slug = sanitize_title($option[0]);
+
+			$label = $this->formatLabel( $option[0] );
+
+			$attr_slug = sanitize_title( $label );
 
 			$position = $key + 1;
 			$isVariation = 0;
@@ -58,7 +61,10 @@ class AttributesProcessor
 			$options = array_map( 'wc_clean', $options );
 			$options = array_filter( $options, 'strlen' );
 
-			if( $taxonomy ) {
+			$options = $this->formatOptions( $options );
+
+			// if( $taxonomy && ! in_array( $option[0], $this->globalAttributes ) ) {
+			if( $taxonomy && in_array( $option[0], $this->globalAttributes ) ) {
 				$attribute_id = wc_attribute_taxonomy_id_by_name( $option[0] );
 
 				if ( taxonomy_exists( $taxonomy ) ) {
@@ -92,6 +98,47 @@ class AttributesProcessor
 		uasort( $attributes, 'wc_product_attribute_uasort_comparison' );
 
 		return $attributes;
+	}
+
+	public function formatLabel($label)
+	{
+		if($label == 'Стать') {
+			$label = 'Для кого';
+		}
+
+		return $label;
+	}
+
+	public function formatOptions($options)
+	{
+		$formattedOptions = [];
+
+		foreach( $options as $option )
+		{
+			if( $option == 'Жіночі' ) {
+				$option = 'Для жінки';
+			}
+
+			if( $option == 'Жіночі та чоловічі' ) {
+				$option = 'Для жінки та чоловіка';
+			}
+
+			if( $option == 'Чоловічі' ) {
+				$option = 'Для чоловіка';
+			}
+
+			if( $option == 'Жіночі та дитячі' ) {
+				$option = 'Для жінки та дітей';
+			}
+
+			if( $option == 'Дитячі' ) {
+				$option = 'Для дітей';
+			}			
+
+			$formattedOptions[] = $option;
+		}
+
+		return $formattedOptions;
 	}
 
 	public function parse($value)

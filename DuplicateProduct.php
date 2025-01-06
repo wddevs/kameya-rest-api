@@ -29,9 +29,7 @@ class DuplicateProduct
 
 			$this->setTranslationsGroup($duplicateId, $product->get_sku(), 'ru');
 
-			$this->syncTerms($product_id, $duplicateId);
-
-			
+			$this->syncTerms($product_id, $duplicateId);			
 
 			return $duplicate;
 		}

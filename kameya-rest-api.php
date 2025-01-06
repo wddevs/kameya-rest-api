@@ -88,7 +88,6 @@ class KameyaRestApi
 
 		add_action('woocommerce_rest_insert_product_object', [$this, 'afterInsert'], 10, 3 );
 		
-
 		register_rest_field( 'product', 'categories_raw',
 	        array(
 	            // 'get_callback'          => [$this, 'getRawCategories'],
@@ -119,7 +118,7 @@ class KameyaRestApi
 		$attributes   = $this->getAttrsFromString( $request->get_param('attributes_raw'), $product, $request->get_param('variations_raw') );
 		$sku   = self::formatSku( $request->get_param('sku') );
 
-		// die( var_dump( $sku ) );
+		// die( var_dump( $attributes ) );
 
 		if( ! empty( $categoriesId ) ) {
 			$product->set_category_ids( $categoriesId );
@@ -142,9 +141,7 @@ class KameyaRestApi
 
 		if( ! empty($variations) ) {
 			$this->handleVariations($variations, $product);
-		}		
-
-		die( var_dump($creating, $request) );
+		}
 
 		$duplicatedProduct = $this->duplicator->duplicate( $product->get_id(), $request );	
 		$this->duplicator->setTranslationsGroup($product->get_id(), self::formatSku( $request->get_param('sku') ), 'uk');
@@ -152,7 +149,7 @@ class KameyaRestApi
 		$this->duplicator->syncVariations($product, $duplicatedProduct, $request);
 	}
 
-	private function getCategoriesIdsFromString( $value )
+	public function getCategoriesIdsFromString( $value )
 	{
 		if( empty( $value ) ) {
 			return [];
@@ -167,6 +164,8 @@ class KameyaRestApi
 		$terms = explode(',', $terms);
 		$terms = array_diff($terms, array(''));
 
+
+
 		if( $terms ) {
 			foreach( $terms as $n => $c){
 				$categoriesNames[] =  explode(' > ', $c)[0];        
@@ -179,12 +178,17 @@ class KameyaRestApi
 		    }
 		}
 
+
+
 		foreach ( $categoriesNames as $row_term ) {
 			$_terms = array_map( 'trim', explode( '>', $row_term ) );
+
+
 			
 			foreach ( $_terms as $index => $_term ) {
 
-				$term = get_term_by( 'slug', sanitize_title( $_term ), 'product_cat' );
+				// $term = get_term_by( 'slug', sanitize_title( $_term ), 'product_cat' );
+				$term = get_term_by( 'name', $_term, 'product_cat' );
 
 				if( ! $term  ) {
 					continue;
@@ -196,10 +200,12 @@ class KameyaRestApi
 			}
 		}
 
+
+
 		return array_unique($categories);
 	}
 
-	private function getAttrsFromString( $value, $product, $variations = [] )
+	public function getAttrsFromString( $value, $product, $variations = [] )
 	{
 		$attrs = $this->attrsProcessor->handle($value, $product, $variations);
 
