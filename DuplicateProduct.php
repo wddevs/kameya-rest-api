@@ -7,6 +7,30 @@ class DuplicateProduct
 
 	}
 
+	public function duplicateBlank( $product, $body, $lang = 'ru' ) {
+
+		$name = $body['name_ru'];
+		$sku = KameyaRestApi::transliterate( urldecode( $body['sku'] ) ) . '_ru';
+
+		if( $product ) {
+			$duplicate = clone $product;
+			$duplicate->set_id( 0 );
+			$duplicate->set_name( $name );
+			$duplicate->set_slug( $name );
+			$duplicate->set_sku( $sku );
+
+			$duplicate->set_meta_data( '_json_body', $body );
+
+			$duplicateId = $duplicate->save();
+
+			$this->setTranslationsGroup($duplicateId, $product->get_sku(), 'ru');
+
+			return $duplicate;
+		}
+
+		return false;
+	}
+
 	public function duplicate( $product_id, $request, $lang = 'ru' )
 	{
 		$product = wc_get_product( $product_id );

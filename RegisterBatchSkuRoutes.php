@@ -103,6 +103,7 @@ class WC_REST_Batch_Sku_Controller extends WC_REST_Products_V1_Controller {
 
 			$variation->set_stock_quantity( 1 );
 			$variation->set_status('publish');
+
 		} else if( isset( $request['published'] ) && $request['published'] == '0'  ) {
 			$variation->set_stock_quantity( '' );
 			$variation->set_status('private');

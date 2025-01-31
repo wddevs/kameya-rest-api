@@ -78,6 +78,26 @@ class WC_REST_Batch_Product_Sku_Controller extends WC_REST_Products_V1_Controlle
 			$product->set_slug( $product->get_title() );
 			$product->set_name( $name );
 
+			if( empty( $request->get_param('images') ) ) {
+				$images = KameyaRestApi::instance()->handleImages($request, $product->get_sku());
+
+				// die( var_dump( json_encode( $images, JSON_PRETTY_PRINT ) ) );
+
+				if( ! empty( $images['main_image'] ) ) {
+					$product->set_image_id( $images['main_image'] );
+				}
+
+				if( ! empty( $images['gallery'] ) ) {
+					$product->set_gallery_image_ids( $images['gallery'] );
+				}
+
+				if( ! empty( $images['video'] ) ) {
+					$product->update_meta_data('_video_data', $images['video']);
+				}
+
+				// die( var_dump( $images['gallery'] ) );
+			}
+
 			if( ! empty( $categoriesId ) ) {
 				$product->set_category_ids( $categoriesId );
 			}

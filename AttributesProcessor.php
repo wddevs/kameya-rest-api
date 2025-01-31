@@ -64,7 +64,7 @@ class AttributesProcessor
 			$options = $this->formatOptions( $options );
 
 			// if( $taxonomy && ! in_array( $option[0], $this->globalAttributes ) ) {
-			if( $taxonomy && in_array( $option[0], $this->globalAttributes ) ) {
+			if( $taxonomy && in_array( $label, $this->globalAttributes ) ) {
 				$attribute_id = wc_attribute_taxonomy_id_by_name( $option[0] );
 
 				if ( taxonomy_exists( $taxonomy ) ) {

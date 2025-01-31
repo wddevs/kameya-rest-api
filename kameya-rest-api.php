@@ -1,5 +1,4 @@
-<?php 
-
+<?php
 /**
  *
  * Plugin Name:       Kameya Rest Api
@@ -45,10 +44,17 @@ require_once __DIR__ . '/RegisterBatchSkuRoutes.php';
 require_once __DIR__ . '/RegisterBatchProductRoutes.php';
 require_once __DIR__ . '/RegisterCheckSkuRoute.php';
 require_once __DIR__ . '/VariationsBatchHandler.php';
+require_once __DIR__ . '/RegisterBatchBlankProductRoute.php';
+require_once __DIR__ . '/includes/ImageHandler.php';
+// require_once __DIR__ . '/load/load-test-simple.php';
+
+
 
 class KameyaRestApi
 
 {
+	use KameyaRestHandleImages;
+
 	protected static $instance = null;
 
 	public $attrsProcessor;
@@ -80,6 +86,10 @@ class KameyaRestApi
 		});
 
 		$this->init();
+
+		add_filter( 'woocommerce_rest_batch_items_limit', function( $limit ) {
+			return 20000;
+		} );
 	}
 
 	public function init() 
@@ -118,7 +128,25 @@ class KameyaRestApi
 		$attributes   = $this->getAttrsFromString( $request->get_param('attributes_raw'), $product, $request->get_param('variations_raw') );
 		$sku   = self::formatSku( $request->get_param('sku') );
 
-		// die( var_dump( $attributes ) );
+		if( empty( $request->get_param('images') ) ) {
+			$images = $this->handleImages($request, $sku);
+
+			// die( var_dump( json_encode( $images, JSON_PRETTY_PRINT ) ) );
+
+			if( ! empty( $images['main_image'] ) ) {
+				$product->set_image_id( $images['main_image'] );
+			}
+
+			if( ! empty( $images['gallery'] ) ) {
+				$product->set_gallery_image_ids( $images['gallery'] );
+			}
+
+			if( ! empty( $images['video'] ) ) {
+				$product->update_meta_data('_video_data', $images['video']);
+			}
+
+			// die( var_dump( $images['gallery'] ) );
+		}
 
 		if( ! empty( $categoriesId ) ) {
 			$product->set_category_ids( $categoriesId );
@@ -137,7 +165,13 @@ class KameyaRestApi
 
 	public function afterInsert( $product, $request, $creating )
 	{
-		$variations = $request->get_param('variations_raw');		
+		$body = $request->get_body();
+
+        $body = json_decode( $body, true );
+
+		$variations = $request->get_param('variations_raw');
+
+		$product->update_meta_data( '_json_body', $body );		
 
 		if( ! empty($variations) ) {
 			$this->handleVariations($variations, $product);

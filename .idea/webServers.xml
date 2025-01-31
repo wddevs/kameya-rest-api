@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="fb243432-b86c-4db8-86d0-51158b64ffbd" name="plugin" url="http://88.99.58.36">
+        <fileTransfer rootFolder="/web/test.kameya.com.ua/public_html" host="88.99.58.36" port="21">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

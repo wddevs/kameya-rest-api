@@ -14,7 +14,7 @@ class VariationsBatchHandler
 
 		// sync
 		// add_action( 'woocommerce_variable_product_sync_data', [$this, 'syncParent'], 10, 3 );
-		add_action( 'woocommerce_after_product_object_save', [$this, 'syncParent'], 10, 2 );
+		// add_action( 'woocommerce_after_product_object_save', [$this, 'syncParent'], 10, 2 );
 	}
 
 	
@@ -101,7 +101,9 @@ class VariationsBatchHandler
 				if( isset( $request['parent_sku'] ) ) {
 					$parent_id = wc_get_product_id_by_sku( KameyaRestApi::formatSku( $request['parent_sku'] ) );
 
-					$product->set_parent_id( $parent_id );					
+					$product->set_parent_id( $parent_id );	
+
+
 				}
 			}
 		}
@@ -139,9 +141,15 @@ class VariationsBatchHandler
 
 		$taxonomy = 'pa_rozmir';
 
-		$parent_id = wc_get_product_id_by_sku( KameyaRestApi::formatSku( $request['parent_sku'] ) . $lang );		
+		$parent_id = wc_get_product_id_by_sku( KameyaRestApi::formatSku( $request['parent_sku'] ) . $lang );
 
+		if ( isset( $request['published'] ) && $request['published'] == '1' ) {
+			$parent_product = wc_get_product( $parent_id );
 
+			$parent_product->set_manage_stock( false );
+			$parent_product->set_stock_status( 'instock' );
+			$parent_product->save();
+		}
 
 		if( $parent_id > 0 ) {
 			$product = wc_get_product( $parent_id );
@@ -263,6 +271,7 @@ class VariationsBatchHandler
 			$variation_ru->save();
 			$variation->save();
 
+			$this->syncParentSizes( $variation_ru );
 			$this->syncParentSizes( $variation );
 		}
 	}
